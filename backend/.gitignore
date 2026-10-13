@@ -1,0 +1,58 @@
+# .NET build and publish output
+[Bb]in/
+[Oo]bj/
+/artifacts/
+/publish/
+
+# Visual Studio and local IDE state
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+.history/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Test results and coverage
+[Tt]est[Rr]esults/
+coverage/
+coverage*.xml
+coverage*.json
+*.trx
+*.coverage
+*.coveragexml
+
+# Local settings and secrets (keep shared appsettings files in Git)
+appsettings.Local.json
+appsettings.*.Local.json
+.env
+.env.*
+!.env.example
+!.env.*.example
+secrets.json
+*.pfx
+*.p12
+*.publishsettings
+*.pubxml.user
+
+# Local SQL Server database files
+*.mdf
+*.ndf
+*.ldf
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
