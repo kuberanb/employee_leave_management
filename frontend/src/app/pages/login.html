@@ -1,0 +1,20 @@
+<main class="login-page">
+  <section class="login-card">
+    <h1>Employee Leave Management</h1>
+    <p class="muted">Sign in to your account.</p>
+    @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" formControlName="email" />
+      @if (form.controls.email.touched && form.controls.email.invalid) { <p class="field-error">Enter a valid email address.</p> }
+      <label for="password">Password</label>
+      <div class="password-field">
+        <input id="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password" formControlName="password" />
+        <button type="button" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">{{ showPassword() ? 'Hide' : 'Show' }}</button>
+      </div>
+      @if (form.controls.password.touched && form.controls.password.invalid) { <p class="field-error">Enter your password.</p> }
+      <button class="button primary login-submit" [disabled]="busy()">{{ busy() ? 'Signing in…' : 'Sign in' }}</button>
+    </form>
+    <p class="login-help muted">Contact your administrator if you need access.</p>
+  </section>
+</main>

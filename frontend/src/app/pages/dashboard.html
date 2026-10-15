@@ -1,0 +1,65 @@
+<header class="topbar">
+  <strong>Employee Leave Management</strong>
+  <div><span>{{ auth.user()?.name }} ({{ manager ? 'Manager' : 'Employee' }})</span><button class="button secondary" (click)="logout()">Sign out</button></div>
+</header>
+<main class="dashboard">
+  <div class="page-heading">
+    <h1>{{ manager ? 'Team leave requests' : 'My leave requests' }}</h1>
+    @if (!manager) { <button class="button primary" (click)="openApply()">Apply for leave</button> }
+  </div>
+  @if (success()) { <div class="notice success" role="status">{{ success() }}<button (click)="success.set('')" aria-label="Dismiss message">×</button></div> }
+  @if (error() && !showApply() && !selected() && !cancelTarget()) { <div class="notice error" role="alert">{{ error() }} <button (click)="load()">Retry</button></div> }
+  <section class="metrics" aria-label="Leave request summary">
+    <div>Total <strong>{{ counts().total }}</strong></div>
+    <div>Pending <strong>{{ counts().Pending }}</strong></div>
+    <div>Approved <strong>{{ counts().Approved }}</strong></div>
+    <div>Rejected <strong>{{ counts().Rejected }}</strong></div>
+  </section>
+  <section class="request-panel" aria-label="Leave requests">
+    <div class="table-tools">
+      <div class="filters">
+        <label for="status">Status</label>
+        <select id="status" [ngModel]="filter()" (ngModelChange)="filter.set($event)">
+          @for (status of statuses; track status) { <option [value]="status">{{ status }}</option> }
+        </select>
+        <input class="search" type="search" aria-label="Search requests" placeholder="Search requests" [ngModel]="search()" (ngModelChange)="search.set($event)" />
+      </div>
+      <button class="button secondary" (click)="load()" [disabled]="loading()">Refresh</button>
+    </div>
+    @if (loading()) {
+      <p class="empty-state" role="status">Loading requests…</p>
+    } @else if (filtered().length === 0) {
+      <p class="empty-state">{{ leaves().length ? 'No matching requests.' : 'No leave requests yet.' }}</p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead><tr>@if (manager) { <th>Employee</th> }<th>Start date</th><th>End date</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            @for (leave of filtered(); track leave.id) {
+              <tr>
+                @if (manager) { <td>{{ leave.employeeName }}<small>{{ leave.employeeEmail }}</small></td> }
+                <td>{{ leave.startDate | date:'d MMM yyyy' }}</td>
+                <td>{{ leave.endDate | date:'d MMM yyyy' }}</td>
+                <td>{{ leave.days }}</td>
+                <td class="reason-cell" [title]="leave.reason">{{ leave.reason }}</td>
+                <td><span [class]="'badge ' + leave.status.toLowerCase()">{{ leave.status }}</span></td>
+                <td><button class="text-button" (click)="openDetails(leave)">{{ manager && leave.status === 'Pending' ? 'Review' : 'Details' }}</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="table-footer">{{ filtered().length }} of {{ leaves().length }} requests. Days include weekends.</p>
+    }
+  </section>
+</main>
+@if (showApply() || selected() || cancelTarget()) {
+  <div class="modal-backdrop" (keydown.escape)="close()"><section class="modal" appDialog role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div class="modal-heading"><div><h2 id="dialog-title">{{ cancelTarget() ? 'Cancel this request?' : showApply() ? 'Apply for leave' : 'Leave request #' + selected()?.id }}</h2></div><button class="close-button" aria-label="Close dialog" (click)="close()" [disabled]="saving()">×</button></div>
+    @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+    @if (cancelTarget(); as leave) { <p class="muted">Your request for {{ leave.startDate | date:'d MMM' }} – {{ leave.endDate | date:'d MMM yyyy' }} will be removed from your history.</p><div class="modal-actions"><button class="button secondary" (click)="cancelTarget.set(null)" [disabled]="saving()">Keep request</button><button class="button danger" (click)="cancel()" [disabled]="saving()">{{ saving() ? 'Cancelling…' : 'Cancel request' }}</button></div> }
+    @else if (showApply()) { <form [formGroup]="form" (ngSubmit)="submit()"><p class="muted">Send your manager the dates and a short reason.</p><div class="form-row"><div><label for="start">Start date</label><input id="start" type="date" formControlName="startDate" [min]="today" /></div><div><label for="end">End date</label><input id="end" type="date" formControlName="endDate" [min]="form.controls.startDate.value || today" /></div></div>@if (form.touched && (form.hasError('dateRange') || form.hasError('pastDate') || form.controls.startDate.invalid || form.controls.endDate.invalid)) { <p class="field-error">Select today or a future start date, and an end date on or after it.</p> }<label for="reason">Reason for leave</label><textarea id="reason" formControlName="reason" rows="4" maxlength="1000" placeholder="Enter your reason"></textarea>@if (form.controls.reason.touched && form.controls.reason.invalid) { <p class="field-error">Enter a reason between 1 and 1,000 characters.</p> }<div class="form-hint"><span>{{ days() }} calendar {{ days() === 1 ? 'day' : 'days' }}</span><span>{{ form.controls.reason.value.length }}/1000</span></div><div class="modal-actions"><button class="button secondary" type="button" (click)="close()" [disabled]="saving()">Cancel</button><button class="button primary" [disabled]="saving()">{{ saving() ? 'Submitting…' : 'Submit request' }}</button></div></form> }
+    @else if (selected(); as leave) { <div class="detail-top"><div><strong>{{ leave.employeeName }}</strong><small>{{ leave.employeeEmail }}</small></div><span [class]="'badge ' + leave.status.toLowerCase()">● {{ leave.status }}</span></div><div class="detail-dates"><div><span>FROM</span><strong>{{ leave.startDate | date:'d MMM yyyy' }}</strong></div><span>→</span><div><span>TO</span><strong>{{ leave.endDate | date:'d MMM yyyy' }}</strong></div><span class="duration">{{ leave.days }} days</span></div><label>Reason</label><p class="detail-reason">{{ leave.reason }}</p><p class="muted small">Submitted {{ leave.createdAt | date:'d MMM yyyy, h:mm a' }}</p>@if (leave.managerComment) { <div class="feedback"><strong>Manager feedback</strong><p>{{ leave.managerComment }}</p></div> }@if (leave.decidedAt) { <p class="muted small">{{ leave.status }} by {{ leave.decidedByName }} · {{ leave.decidedAt | date:'d MMM yyyy, h:mm a' }}</p> }@if (manager && leave.status === 'Pending') { <label for="comment">Decision comment <span class="muted">(optional)</span></label><textarea id="comment" [(ngModel)]="comment" rows="3" maxlength="1000" placeholder="Enter an optional comment"></textarea><div class="modal-actions"><button class="button danger" (click)="decide('Rejected')" [disabled]="saving()">Reject request</button><button class="button primary" (click)="decide('Approved')" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Approve request' }}</button></div> } @else { <div class="modal-actions">@if (!manager && leave.status === 'Pending') { <button class="button danger" (click)="cancelTarget.set(leave)">Cancel request</button> }<button class="button secondary" (click)="close()">Close</button></div> } }
+  </section></div>
+}
+
+
